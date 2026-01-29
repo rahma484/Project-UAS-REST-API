@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs')
+// bcrypt tidak lagi digunakan untuk login, tapi tetap di-require agar tidak error di bagian lain jika ada
+const bcrypt = require('bcryptjs') 
 const userModel = require('../models/userModel')
 
 const register = async (req, res) => {
@@ -15,6 +16,7 @@ const register = async (req, res) => {
      
         const userRole = role || 'staff'
         
+        // Pastikan di userModel.js, fungsi createUser juga sudah tidak memakai bcrypt.hash
         const user = await userModel.createUser({
             name,
             email,
@@ -72,7 +74,10 @@ const login = async (req, res) => {
             })
         }
        
-        const isValidPassword = await bcrypt.compare(password, user.password)
+        // PERBAIKAN: Menggunakan perbandingan string langsung (Plain Text)
+        // Tanpa await bcrypt.compare
+        const isValidPassword = (password === user.password)
+        
         if (!isValidPassword) {
             return res.status(401).json({
                 success: false,

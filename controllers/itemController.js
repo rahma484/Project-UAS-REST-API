@@ -2,17 +2,32 @@ const itemModel = require('../models/itemModel')
 
 const getAllItems = async (req, res) => {
     try {
-        const items = await itemModel.getAllItems()
-        res.json({
-            success: true,
-            count: items.length,
-            data: items
-        })
+        // Ambil parameter page dan limit dari URL (jika ada)
+        const { page, limit } = req.query;
+
+        // LOGIKA CERDAS: 
+        // Jika ada parameter page/limit, gunakan pagination (untuk Dashboard)
+        // Jika TIDAK ADA, ambil semua data (untuk Lihat Semua Aset)
+        if (page && limit) {
+            const result = await itemModel.getItemsWithPagination(parseInt(page), parseInt(limit));
+            return res.json({
+                success: true,
+                data: result // result biasanya berisi { items, pagination }
+            });
+        } else {
+            // Mengambil semua data tanpa batas (untuk fitur Lihat Semua)
+            const items = await itemModel.getAllItems();
+            return res.json({
+                success: true,
+                count: items.length,
+                data: items
+            });
+        }
     } catch (error) {
         res.status(500).json({
             success: false,
             message: 'Gagal mengambil data items: ' + error.message
-        })
+        });
     }
 }
 
@@ -40,12 +55,7 @@ const getItemByCode = async (req, res) => {
 
 const createItem = async (req, res) => {
     try {
-        const { 
-            item_code, name, category_id, brand, model, serial_number, 
-            quantity, available, minimum_stock, unit, purchase_price, 
-            current_value, location, supplier, purchase_date, 
-            warranty_until, condition, description 
-        } = req.body
+        const { item_code, name } = req.body
 
         if (!item_code || !name) {
             return res.status(400).json({
@@ -54,6 +64,7 @@ const createItem = async (req, res) => {
             })
         }
 
+        // Pastikan created_by diambil dari token user yang login
         const newItemId = await itemModel.createItem({
             ...req.body,
             created_by: req.user.id 
@@ -72,8 +83,6 @@ const createItem = async (req, res) => {
 const updateItem = async (req, res) => {
     try {
         const { kode } = req.params
-        const { name, category_id, quantity, condition } = req.body
-        
         if (!kode) {
             return res.status(400).json({ success: false, message: 'Kode item harus diisi' })
         }
@@ -112,6 +121,7 @@ const searchItems = async (req, res) => {
         if (!q) {
             return res.status(400).json({ success: false, message: 'Query pencarian harus diisi' })
         }
+        // Mencari ke database (biasanya mengambil semua yang cocok tanpa limit paging)
         const items = await itemModel.searchItems(q)
         res.json({ success: true, count: items.length, data: items })
     } catch (error) {
@@ -129,6 +139,31 @@ const getItemsByCategory = async (req, res) => {
     }
 }
 
+const getInventoryStats = async (req, res) => {
+    try {
+        const stats = await itemModel.getInventoryStats(); // Kita buat fungsinya di model nanti
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getAllCategories = async (req, res) => {
+    try {
+        const categories = await itemModel.getAllCategories();
+        res.json({
+            success: true,
+            count: categories.length,
+            data: categories
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = { 
     getAllItems, 
     getItemByCode, 
@@ -136,5 +171,7 @@ module.exports = {
     updateItem, 
     deleteItem, 
     searchItems, 
-    getItemsByCategory 
+    getItemsByCategory,
+    getInventoryStats,
+    getAllCategories
 }

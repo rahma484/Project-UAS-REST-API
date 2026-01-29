@@ -41,4 +41,25 @@ const getUserById = async (req, res) => {
     }
 }
 
-module.exports = {getAllUsers, getUserById}
+const updateRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!role) {
+            return res.status(400).json({ success: false, message: 'Role harus ditentukan' });
+        }
+
+        const affectedRows = await userModel.updateUserRole(id, role);
+        
+        if (affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        }
+
+        res.json({ success: true, message: `Role user berhasil diubah menjadi ${role}` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = {getAllUsers, getUserById, updateRole}

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RA Inventory - Meow Management 🐾</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        body { font-family: 'Fredoka', sans-serif; background-color: #fff5f7; }
+        .sidebar-active { background-color: #ec4899 !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.3); }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 25px rgba(236, 72, 153, 0.1); border: 2px solid #fce7f3; }
+        .cat-bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .category-card:hover { transform: scale(1.05); background-color: #fdf2f8; cursor: pointer; border-color: #ec4899; }
+    </style>
+</head>
+<body class="text-slate-700 text-sm">
+
+    <div id="authPage" class="fixed inset-0 z-[2000] flex items-center justify-center bg-pink-50 p-6">
+        <div class="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md border-4 border-pink-200 text-center">
+            <div class="cat-bounce text-6xl mb-4">🐱</div>
+            <h1 class="text-3xl font-bold text-pink-500">RA Inventory</h1>
+            <div class="flex gap-2 my-6 bg-pink-50 p-2 rounded-2xl">
+                <button onclick="showAuthTab('login')" id="loginTabBtn" class="flex-1 py-2 rounded-xl font-bold transition-all bg-pink-500 text-white">Login</button>
+                <button onclick="showAuthTab('register')" id="registerTabBtn" class="flex-1 py-2 rounded-xl font-bold transition-all text-pink-500">Register</button>
+            </div>
+            <form id="loginForm" class="space-y-4 text-left">
+                <input type="email" id="email" placeholder="Email" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <input type="password" id="password" placeholder="Password" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <button type="submit" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold hover:bg-pink-600 transition shadow-lg">Masuk 🐾</button>
+                <button type="button" onclick="openModal('publicSearchModal')" class="w-full text-xs text-pink-400 mt-2 underline text-center">Cari Barang Tanpa Login (Public Search)</button>
+            </form>
+            <form id="registerForm" class="space-y-4 text-left hidden">
+                <input type="text" id="reg_name" placeholder="Nama Lengkap" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <input type="email" id="reg_email" placeholder="Email" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <input type="password" id="reg_password" placeholder="Password" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <button type="submit" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold hover:bg-pink-600 shadow-lg">Daftar ✨</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden flex h-screen overflow-hidden">
+        <aside class="w-72 bg-white border-r-4 border-pink-50 flex flex-col p-6 shadow-xl">
+            <div class="text-2xl font-bold text-pink-500 mb-10 flex items-center"><span class="mr-3">🐾</span> RA-INV</div>
+            <nav class="space-y-3 flex-1">
+                <button onclick="showSection('dashboard')" id="nav-dashboard" class="nav-btn sidebar-active w-full text-left p-4 rounded-2xl flex items-center"><i class="fas fa-th-large mr-3"></i> Dashboard</button>
+                <button onclick="showSection('items')" id="nav-items" class="nav-btn w-full text-left p-4 rounded-2xl hover:bg-pink-50 flex items-center"><i class="fas fa-box mr-3"></i> Inventaris</button>
+                <button onclick="showSection('loans')" id="nav-loans" class="nav-btn w-full text-left p-4 rounded-2xl hover:bg-pink-50 flex items-center"><i class="fas fa-handshake mr-3"></i> Peminjaman</button>
+                <button onclick="showSection('users')" id="nav-users" class="nav-btn w-full text-left p-4 rounded-2xl hover:bg-pink-50 flex items-center"><i class="fas fa-users mr-3"></i> User Admin</button>
+            </nav>
+            <button onclick="generateTestData()" class="mb-4 text-[10px] bg-slate-100 p-2 rounded-xl hover:bg-slate-200 transition font-bold"><i class="fas fa-flask mr-2"></i>Generate Test Data</button>
+            <button onclick="logout()" class="text-red-400 p-4 hover:bg-red-50 rounded-2xl font-bold transition flex items-center"><i class="fas fa-power-off mr-2"></i> Keluar</button>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="p-6 bg-white/50 backdrop-blur-md flex justify-between items-center px-10 border-b-2 border-pink-50">
+                <h2 id="sectionTitle" class="text-2xl font-bold text-pink-500 uppercase tracking-widest">Dashboard</h2>
+                <div class="flex items-center gap-4">
+                    <div class="text-right"><p id="profileName" class="font-bold">User</p><p id="profileRole" class="text-xs text-pink-400 font-bold uppercase tracking-tighter">Role</p></div>
+                    <div class="w-12 h-12 bg-pink-500 rounded-2xl text-white flex items-center justify-center text-xl shadow-lg"><i class="fas fa-cat"></i></div>
+                </div>
+            </header>
+
+            <div class="p-10 overflow-y-auto space-y-8">
+                <section id="dashboard" class="view-section active space-y-8">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="card border-b-8 border-pink-400 flex items-center gap-6">
+                            <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 text-4xl shadow-inner"><i class="fas fa-boxes"></i></div>
+                            <div><p class="text-sm font-bold text-gray-400 uppercase">Total Aset</p><h3 id="statTotal" class="text-5xl font-bold text-pink-600">0</h3></div>
+                        </div>
+                        <div class="card border-b-8 border-blue-400">
+                            <p class="text-xs font-bold text-blue-500 uppercase mb-4 tracking-widest text-center">Visual Persediaan</p>
+                            <canvas id="inventoryChart" height="100"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="card">
+                            <h3 class="font-bold mb-6 text-pink-500 uppercase text-xs tracking-widest border-b-2 border-pink-50 pb-2"><i class="fas fa-tags mr-2"></i>Kategori Barang</h3>
+                            <div id="categoryGrid" class="grid grid-cols-3 gap-3 text-center">
+                                <div onclick="filterByCategoryId(1)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-mobile-alt text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Smartphones</p></div>
+                                <div onclick="filterByCategoryId(2)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-laptop text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Laptops</p></div>
+                                <div onclick="filterByCategoryId(3)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-air-freshener text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Fragrances</p></div>
+                                <div onclick="filterByCategoryId(4)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-magic text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Skincare</p></div>
+                                <div onclick="filterByCategoryId(5)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-shopping-basket text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Groceries</p></div>
+                                <div onclick="filterByCategoryId(6)" class="category-card p-3 rounded-2xl border-2 border-pink-50 transition-all"><i class="fas fa-home text-pink-300 mb-1"></i><p class="text-[9px] font-bold uppercase">Decoration</p></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3 class="font-bold mb-4 text-pink-500 uppercase text-xs tracking-widest border-b-2 border-pink-50 pb-2"><i class="fas fa-history mr-2"></i>Aktivitas Terbaru</h3>
+                            <div id="dashboardActivity" class="space-y-3 overflow-y-auto max-h-56 pr-2"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="items" class="view-section space-y-6">
+                    <div class="flex justify-between items-center bg-white p-4 rounded-[30px] shadow-sm">
+                        <div class="relative w-96 group">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-pink-400 group-focus-within:scale-110 transition-transform"></i>
+                            <input type="text" id="itemSearch" oninput="handleInternalSearch(this.value)" placeholder="Cari Kode atau Nama Barang..." class="bg-pink-50 border-2 border-pink-100 outline-none w-full py-3 pl-12 pr-4 rounded-2xl text-sm focus:ring-2 focus:ring-pink-300 transition-all shadow-inner">
+                        </div>
+                        <button onclick="openModalForAdd()" class="bg-pink-500 text-white p-4 px-10 rounded-2xl font-bold shadow-lg hover:bg-pink-600 transition transform active:scale-95">Tambah Aset</button>
+                    </div>
+                    <div class="card">
+                        <table class="w-full text-left text-xs"><thead class="text-pink-500 border-b-2 border-pink-50 uppercase font-bold text-[10px]"><tr><th class="p-4">Kode</th><th>Nama Aset</th><th>Brand</th><th>Stok</th><th class="text-center">Aksi</th></tr></thead><tbody id="itemTable"></tbody></table>
+                        <div id="paginationControls" class="flex justify-center gap-2 mt-6"></div>
+                    </div>
+                </section>
+
+                <section id="loans" class="view-section space-y-6">
+                    <div class="flex gap-4">
+                        <button onclick="openLoanModal()" class="bg-emerald-500 text-white p-6 rounded-[35px] font-bold flex-1 text-xl shadow-lg hover:bg-emerald-600 transition transform active:scale-95">Pinjam Barang</button>
+                        <button onclick="openModal('returnModal')" class="bg-blue-500 text-white p-6 rounded-[35px] font-bold flex-1 text-xl shadow-lg hover:bg-blue-600 transition transform active:scale-95">Return Barang</button>
+                    </div>
+                    <div class="card"><h3 class="font-bold mb-6 text-pink-500 uppercase tracking-widest text-xs border-b-2 border-pink-50 pb-2">Riwayat Peminjaman</h3><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-pink-50 text-pink-500 uppercase font-bold text-[10px]"><tr><th class="p-4">ID Pinjam</th><th>Barang</th><th>Peminjam</th><th>Status</th></tr></thead><tbody id="loanTable"></tbody></table></div></div>
+                </section>
+
+                <section id="users" class="view-section">
+                    <div class="card"><h3 class="font-bold mb-6 text-pink-500 uppercase tracking-widest text-xs border-b-2 border-pink-50 pb-2">User Admin</h3><table class="w-full text-left text-xs"><thead class="bg-pink-50 text-pink-500 uppercase font-bold text-[10px]"><tr><th class="p-4">ID</th><th>Nama</th><th>Email</th><th>Role</th><th class="text-center">Aksi</th></tr></thead><tbody id="userTable"></tbody></table></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="itemModal" class="modal">
+        <div class="bg-white p-8 rounded-[40px] w-full max-w-3xl flex flex-col max-h-[90vh] shadow-2xl border-4 border-pink-100">
+            <div class="flex justify-between items-center mb-6 text-pink-500 font-bold"><h3 id="modalTitle">Tambah Aset</h3><button onclick="closeModal('itemModal')"><i class="fas fa-times"></i></button></div>
+            <div class="flex gap-8 overflow-hidden">
+                <form id="itemForm" class="flex-1 space-y-4">
+                    <input type="text" id="i_code" placeholder="Kode (BRG-XXX)" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500 transition" required>
+                    <input type="text" id="i_name" placeholder="Nama Barang" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500 transition" required>
+                    <div class="grid grid-cols-2 gap-4"><input type="number" id="i_qty" placeholder="Stok" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500 transition" required><input type="text" id="i_brand" placeholder="Brand" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500 transition"></div>
+                    <select id="i_cat" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500 text-gray-500" required></select>
+                    <button type="submit" id="submitBtn" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-pink-600 transition">Simpan Aset 🚀</button>
+                </form>
+                <div id="dummySection" class="w-72 border-l-2 border-pink-50 pl-6 flex flex-col bg-slate-50 rounded-3xl p-4">
+                    <p class="text-[10px] font-bold text-blue-500 uppercase mb-3 text-center tracking-widest"><i class="fas fa-magic mr-2"></i>Rekomendasi Dummy</p>
+                    <div class="relative mb-4"><input type="text" id="dummySearchInput" oninput="loadDummyData(this.value)" placeholder="Cari produk..." class="w-full p-2 text-xs rounded-xl border-2 border-pink-100 outline-none focus:border-blue-400"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-blue-200 text-xs"></i></div>
+                    <div id="dummyList" class="flex-1 overflow-y-auto space-y-2 pr-1 shadow-inner bg-white rounded-xl p-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="modal"><div class="bg-white p-8 rounded-[40px] w-full max-w-md border-4 border-pink-100 shadow-2xl text-center"><div id="detailContent"></div><button onclick="closeModal('detailModal')" class="mt-6 w-full bg-pink-500 text-white py-2 rounded-xl font-bold">Tutup</button></div></div>
+    
+    <div id="loanModal" class="modal">
+        <div class="bg-white p-8 rounded-[40px] w-full max-w-lg border-4 border-emerald-100 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-emerald-500">Pinjam Aset</h3>
+                <button onclick="closeModal('loanModal')" class="text-emerald-300 hover:text-emerald-500"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="loanForm" class="space-y-4"><select id="l_item" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required></select><input type="number" id="l_qty" placeholder="Jumlah" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required><input type="date" id="l_date" class="w-full p-4 rounded-2xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required><button type="submit" class="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold shadow-lg">Pinjam</button></form>
+        </div>
+    </div>
+
+    <div id="returnModal" class="modal">
+        <div class="bg-white p-8 rounded-[40px] w-full max-w-lg border-4 border-blue-100 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-blue-500">Return Barang</h3>
+                <button onclick="closeModal('returnModal')" class="text-blue-300 hover:text-blue-500"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-xs text-gray-400 mb-6 text-center">Cek ID Pinjam di riwayat 🐾</p>
+            <form id="returnForm" class="space-y-4">
+                <input type="number" id="r_loan_id" placeholder="ID Pinjam (Contoh: 1)" class="w-full p-4 rounded-2xl border-2 border-blue-50 outline-none focus:border-blue-500" required>
+                <select id="r_cond" class="w-full p-4 rounded-xl border-2 border-blue-50 outline-none focus:border-blue-500"><option value="good">Baik ✨</option><option value="minor_damage">Rusak Ringan 🩹</option></select>
+                <button type="submit" class="w-full bg-blue-500 text-white p-5 rounded-2xl font-bold shadow-lg">Proses Return</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="publicSearchModal" class="modal"><div class="bg-white p-8 rounded-[40px] w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl border-4 border-pink-100"><h3 class="text-2xl font-bold text-pink-500 mb-4 text-center">Public Search 🌐</h3><input type="text" oninput="handlePublicSearch(this.value)" placeholder="Cari nama barang..." class="w-full p-4 bg-pink-50 rounded-2xl mb-4 outline-none border-2 border-pink-100"><div id="publicResult" class="space-y-2"></div><button onclick="closeModal('publicSearchModal')" class="mt-4 w-full text-slate-400 underline text-center">Kembali ke Halaman Login</button></div></div>
+
+    <script>
+        const API = 'http://localhost:8000/api';
+        let token = localStorage.getItem('token');
+        let chartInstance = null;
+        let originalItems = []; 
+        let isEditMode = false;
+        let currentEditCode = '';
+
+        async function init() {
+            if (!token) return;
+            try {
+                const res = await fetch(`${API}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` }});
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('authPage').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('profileName').innerText = data.data.name;
+                    document.getElementById('profileRole').innerText = data.data.role;
+                    loadDashboard();
+                    fetchCategories(); 
+                    fetchItems(); 
+                } else logout();
+            } catch (err) { logout(); }
+        }
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value, password: password.value })});
+            const data = await res.json();
+            if (data.success) { localStorage.setItem('token', data.data.token); token = data.data.token; init(); } else alert(data.message);
+        };
+
+        function logout() { localStorage.clear(); location.reload(); }
+
+        async function loadDashboard() { loadStats(); fetchActivity(); }
+
+        async function loadStats() {
+            const res = await fetch(`${API}/items/stats/summary`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('statTotal').innerText = data.data.total_items || 0;
+                renderChart(data.data.total_stock || 0, data.data.low_stock_count || 0);
+            }
+        }
+
+        function renderChart(ready, low) {
+            const ctx = document.getElementById('inventoryChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['Stok Aman', 'Hampir Habis'], datasets: [{ data: [ready, low], backgroundColor: ['#10b981', '#f59e0b'], borderRadius: 10 }]},
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        async function fetchActivity() {
+            const res = await fetch(`${API}/loans`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            if (data.data && data.data.length > 0) {
+                document.getElementById('dashboardActivity').innerHTML = data.data.slice(0, 10).map(l => `
+                    <div class="flex items-center gap-3 p-3 bg-pink-50 rounded-2xl border-l-4 ${l.status === 'borrowed' ? 'border-blue-400' : 'border-emerald-400'} shadow-sm mb-2 transition-all">
+                        <div class="text-[10px] flex-1">
+                            <p class="font-bold">#ID-${l.Id || l.id} : ${l.item_name}</p>
+                            <p class="text-gray-400">${l.user_name} <span class="font-bold uppercase">${l.status === 'borrowed' ? 'Meminjam' : 'Mengembalikan'}</span></p>
+                        </div>
+                    </div>`).join('');
+            }
+        }
+
+        async function fetchItems(page = 1) {
+            const res = await fetch(`${API}/items?page=${page}&limit=5`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const items = data.data.items || data.data; 
+            originalItems = items;
+            renderItems(items);
+            if (data.data.pagination) renderPagination(data.data.pagination);
+            else if (data.pagination) renderPagination(data.pagination);
+        }
+
+        function renderItems(items) {
+            document.getElementById('itemTable').innerHTML = items.map(i => `
+                <tr class="border-b border-pink-50 hover:bg-pink-50 transition group text-[11px]">
+                    <td class="p-4 font-bold text-pink-500">${i.item_code}</td>
+                    <td class="font-bold text-slate-700 cursor-pointer underline decoration-dotted" onclick="showDetail('${i.item_code}')">${i.name}</td>
+                    <td class="text-gray-400">${i.brand || '-'}</td>
+                    <td class="font-bold text-slate-600">${i.available}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="openModalForEdit('${i.item_code}', '${i.name}', '${i.brand}', ${i.quantity}, ${i.category_id})" class="text-blue-400"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteItem('${i.item_code}')" class="text-red-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        async function showDetail(kode) {
+            const res = await fetch(`${API}/items/${kode}`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const itm = data.data;
+            document.getElementById('detailContent').innerHTML = `<h3 class="text-xl font-bold text-pink-500 mb-4 text-center">${itm.name}</h3><div class="space-y-2 text-xs text-left"><p><b>Kode:</b> ${itm.item_code}</p><p><b>Brand:</b> ${itm.brand || '-'}</p><p><b>Total Stok:</b> ${itm.quantity}</p><p><b>Tersedia:</b> ${itm.available}</p></div>`;
+            openModal('detailModal');
+        }
+
+        async function handleInternalSearch(q) {
+            if(!q) return fetchItems();
+            const res = await fetch(`${API}/items/search?q=${q}`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            renderItems(data.data);
+            document.getElementById('paginationControls').innerHTML = '';
+        }
+
+        async function fetchCategories() {
+            const res = await fetch(`${API}/items/categories/all`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            document.getElementById('i_cat').innerHTML = data.data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        function filterByCategoryId(id) {
+            showSection('items');
+            const filtered = originalItems.filter(i => i.category_id == id);
+            renderItems(filtered);
+        }
+
+        async function loadDummyData(query = '') {
+            const url = query ? `https://dummyjson.com/products/search?q=${query}` : 'https://dummyjson.com/products?limit=10';
+            const res = await fetch(url);
+            const data = await res.json();
+            document.getElementById('dummyList').innerHTML = data.products.map(p => `
+                <div onclick="fillForm('${p.title.replace(/'/g, "\\'")}', '${p.brand ? p.brand.replace(/'/g, "\\'") : '-'}', ${p.stock})" class="p-2 bg-slate-50 rounded-xl border-2 border-white hover:border-pink-300 cursor-pointer mb-1 transition-all">
+                    <p class="font-bold text-[9px] line-clamp-1">${p.title}</p>
+                </div>`).join('');
+        }
+
+        function fillForm(name, brand, stock) {
+            document.getElementById('i_name').value = name;
+            document.getElementById('i_brand').value = brand;
+            document.getElementById('i_qty').value = stock;
+        }
+
+        function openModalForAdd() {
+            isEditMode = false;
+            document.getElementById('modalTitle').innerText = 'Input Aset Baru';
+            document.getElementById('i_code').disabled = false;
+            document.getElementById('itemForm').reset();
+            loadDummyData();
+            openModal('itemModal');
+        }
+
+        function openModalForEdit(code, name, brand, qty, cat) {
+            isEditMode = true; currentEditCode = code;
+            document.getElementById('modalTitle').innerText = 'Edit Data Aset';
+            document.getElementById('dummySection').style.display = 'none';
+            document.getElementById('i_code').value = code; document.getElementById('i_code').disabled = true;
+            document.getElementById('i_name').value = name; document.getElementById('i_brand').value = brand;
+            document.getElementById('i_qty').value = qty; document.getElementById('i_cat').value = cat;
+            openModal('itemModal');
+        }
+
+        document.getElementById('itemForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const url = isEditMode ? `${API}/items/${currentEditCode}` : `${API}/items`;
+            const method = isEditMode ? 'PUT' : 'POST';
+            const res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ item_code: i_code.value, name: i_name.value, brand: i_brand.value, quantity: i_qty.value, category_id: i_cat.value })});
+            const data = await res.json();
+            alert(data.message); if(data.success) { closeModal('itemModal'); fetchItems(); loadDashboard(); }
+        };
+
+        async function openLoanModal() {
+            const res = await fetch(`${API}/items`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const items = data.data.items || data.data; 
+            document.getElementById('l_item').innerHTML = items.map(i => `<option value="${i.Id || i.id}">${i.name} (Stok: ${i.available})</option>`).join('');
+            openModal('loanModal');
+        }
+
+        document.getElementById('loanForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API}/loans`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ item_id: l_item.value, quantity: l_qty.value, return_date: l_date.value, purpose: 'Pinjam Sistem' })});
+            const data = await res.json();
+            alert(data.message); if(data.success) { closeModal('loanModal'); fetchLoans(); loadDashboard(); fetchItems(); }
+        };
+
+        document.getElementById('returnForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API}/returns`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ loan_id: r_loan_id.value, condition: r_cond.value })});
+            const data = await res.json();
+            alert(data.message); if(data.success) { closeModal('returnModal'); fetchLoans(); loadDashboard(); fetchItems(); }
+        };
+
+        async function fetchLoans() {
+            const res = await fetch(`${API}/loans`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const tableBody = document.getElementById('loanTable');
+            if (data.data && data.data.length > 0) {
+                tableBody.innerHTML = data.data.map(l => `
+                    <tr class="border-b border-pink-50 text-[11px] hover:bg-pink-50 transition">
+                        <td class="p-4 font-bold text-gray-400 italic">#ID-${l.Id || l.id}</td>
+                        <td class="font-bold text-slate-700">${l.item_name}</td>
+                        <td class="text-gray-500 uppercase font-bold text-[10px]">${l.user_name}</td>
+                        <td><span class="px-3 py-1 rounded-full ${l.status === 'borrowed' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'} text-[8px] font-bold uppercase shadow-sm">${l.status}</span></td>
+                    </tr>`).join('');
+            } else { tableBody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-gray-300 italic">Belum ada riwayat peminjaman meow... 🐱</td></tr>`; }
+        }
+
+        async function fetchUsers() {
+            const res = await fetch(`${API}/users`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            document.getElementById('userTable').innerHTML = data.data.map(u => `<tr class="border-b border-pink-50 text-[11px]"><td class="p-4 font-bold text-gray-400 italic">#U-${u.id}</td><td class="font-bold text-slate-700">${u.name}</td><td>${u.email}</td><td><span class="px-3 py-1 bg-pink-50 text-pink-500 rounded-lg text-[9px] font-bold uppercase shadow-sm">${u.role}</span></td><td class="text-center"><button onclick="updateUserRole(${u.id}, '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-blue-400 underline font-bold">Switch</button></td></tr>`).join('');
+        }
+
+        async function updateUserRole(id, newRole) {
+            const res = await fetch(`${API}/users/role/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ role: newRole })});
+            const data = await res.json(); if(data.success) fetchUsers();
+        }
+
+        async function handlePublicSearch(q) {
+            if(!q) return document.getElementById('publicResult').innerHTML = '';
+            const res = await fetch(`${API}/public/search?q=${q}`);
+            const data = await res.json();
+            document.getElementById('publicResult').innerHTML = data.data.map(itm => `<div class="p-3 bg-slate-50 rounded-xl flex justify-between mb-1"><span>${itm.name}</span><span class="font-bold text-pink-500">${itm.available} Ready</span></div>`).join('');
+        }
+
+        async function generateTestData() {
+            if(!confirm("Hasilkan data uji coba?")) return;
+            const res = await fetch(`${API}/generate-data`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json(); alert(data.message); init();
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('sidebar-active'));
+            const section = document.getElementById(id);
+            if(section) section.classList.add('active');
+            const btn = document.getElementById('nav-' + id);
+            if(btn) btn.classList.add('sidebar-active');
+            document.getElementById('sectionTitle').innerText = id.toUpperCase();
+            if (id === 'dashboard') loadDashboard();
+            if (id === 'items') fetchItems();
+            if (id === 'loans') fetchLoans();
+            if (id === 'users') fetchUsers();
+        }
+
+        function renderPagination(pg) {
+            let html = '';
+            for(let i=1; i<=pg.pages; i++) {
+                html += `<button onclick="fetchItems(${i})" class="px-3 py-1 rounded-lg ${pg.page == i ? 'bg-pink-500 text-white' : 'bg-white border'}">${i}</button>`;
+            }
+            document.getElementById('paginationControls').innerHTML = html;
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; isEditMode = false; }
+
+        async function deleteItem(kode) {
+            if(!confirm("Hapus item ini?")) return;
+            const res = await fetch(`${API}/items/${kode}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json(); fetchItems(); loadDashboard();
+        }
+
+        init();
+    </script>
+</body>
+</html>
