@@ -62,4 +62,15 @@ const updateRole = async (req, res) => {
     }
 };
 
-module.exports = {getAllUsers, getUserById, updateRole}
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const affectedRows = await userModel.deleteUser(id);
+        if (affectedRows === 0) return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        res.json({ success: true, message: 'User berhasil dihapus' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = {getAllUsers, getUserById, updateRole, deleteUser}

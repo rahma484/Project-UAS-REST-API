@@ -40,6 +40,10 @@
                 <input type="text" id="reg_name" placeholder="Nama Lengkap" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
                 <input type="email" id="reg_email" placeholder="Email" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
                 <input type="password" id="reg_password" placeholder="Password" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none" required>
+                <select id="reg_role" class="w-full p-4 rounded-2xl border-2 border-pink-100 focus:border-pink-500 outline-none text-gray-400">
+                    <option value="staff">Daftar sebagai Staff</option>
+                    <option value="admin">Daftar sebagai Admin</option>
+                </select>
                 <button type="submit" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold hover:bg-pink-600 shadow-lg">Daftar ✨</button>
             </form>
         </div>
@@ -61,7 +65,7 @@
         <main class="flex-1 flex flex-col overflow-hidden">
             <header class="p-6 bg-white/50 backdrop-blur-md flex justify-between items-center px-10 border-b-2 border-pink-50">
                 <h2 id="sectionTitle" class="text-2xl font-bold text-pink-500 uppercase tracking-widest">Dashboard</h2>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 cursor-pointer" onclick="openModal('profileModal')">
                     <div class="text-right"><p id="profileName" class="font-bold">User</p><p id="profileRole" class="text-xs text-pink-400 font-bold uppercase tracking-tighter">Role</p></div>
                     <div class="w-12 h-12 bg-pink-500 rounded-2xl text-white flex items-center justify-center text-xl shadow-lg"><i class="fas fa-cat"></i></div>
                 </div>
@@ -69,14 +73,18 @@
 
             <div class="p-10 overflow-y-auto space-y-8">
                 <section id="dashboard" class="view-section active space-y-8">
-                    <div class="grid grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="card border-b-8 border-pink-400 flex items-center gap-6">
-                            <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 text-4xl shadow-inner"><i class="fas fa-boxes"></i></div>
-                            <div><p class="text-sm font-bold text-gray-400 uppercase">Total Aset</p><h3 id="statTotal" class="text-5xl font-bold text-pink-600">0</h3></div>
+                            <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 text-2xl shadow-inner"><i class="fas fa-boxes"></i></div>
+                            <div><p class="text-[10px] font-bold text-gray-400 uppercase">Total Aset</p><h3 id="statTotal" class="text-4xl font-bold text-pink-600">0</h3></div>
                         </div>
-                        <div class="card border-b-8 border-blue-400">
-                            <p class="text-xs font-bold text-blue-500 uppercase mb-4 tracking-widest text-center">Visual Persediaan</p>
-                            <canvas id="inventoryChart" height="100"></canvas>
+                        <div class="card border-b-8 border-emerald-400 flex items-center gap-6">
+                            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-2xl shadow-inner"><i class="fas fa-hand-holding"></i></div>
+                            <div><p class="text-[10px] font-bold text-gray-400 uppercase">Dipinjam</p><h3 id="statLoans" class="text-4xl font-bold text-emerald-600">0</h3></div>
+                        </div>
+                        <div class="card border-b-8 border-blue-400 flex flex-col justify-center">
+                            <p class="text-[10px] font-bold text-blue-500 uppercase mb-2 tracking-widest text-center">Visual Stok</p>
+                            <canvas id="inventoryChart" height="80"></canvas>
                         </div>
                     </div>
 
@@ -105,10 +113,10 @@
                             <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-pink-400 group-focus-within:scale-110 transition-transform"></i>
                             <input type="text" id="itemSearch" oninput="handleInternalSearch(this.value)" placeholder="Cari Kode atau Nama Barang..." class="bg-pink-50 border-2 border-pink-100 outline-none w-full py-3 pl-12 pr-4 rounded-2xl text-sm focus:ring-2 focus:ring-pink-300 transition-all shadow-inner">
                         </div>
-                        <button onclick="openModalForAdd()" class="bg-pink-500 text-white p-4 px-10 rounded-2xl font-bold shadow-lg hover:bg-pink-600 transition transform active:scale-95">Tambah Aset</button>
+                        <button id="addAssetBtn" onclick="openModalForAdd()" class="bg-pink-500 text-white p-4 px-10 rounded-2xl font-bold shadow-lg hover:bg-pink-600 transition transform active:scale-95">Tambah Aset</button>
                     </div>
                     <div class="card">
-                        <table class="w-full text-left text-xs"><thead class="text-pink-500 border-b-2 border-pink-50 uppercase font-bold text-[10px]"><tr><th class="p-4">Kode</th><th>Nama Aset</th><th>Brand</th><th>Stok</th><th class="text-center">Aksi</th></tr></thead><tbody id="itemTable"></tbody></table>
+                        <table class="w-full text-left text-xs"><thead class="text-pink-500 border-b-2 border-pink-50 uppercase font-bold text-[10px]"><tr><th class="p-4">Kode</th><th>Nama Aset</th><th>Brand</th><th>Stok</th><th class="text-center action-col">Aksi</th></tr></thead><tbody id="itemTable"></tbody></table>
                         <div id="paginationControls" class="flex justify-center gap-2 mt-6"></div>
                     </div>
                 </section>
@@ -118,7 +126,8 @@
                         <button onclick="openLoanModal()" class="bg-emerald-500 text-white p-6 rounded-[35px] font-bold flex-1 text-xl shadow-lg hover:bg-emerald-600 transition transform active:scale-95">Pinjam Barang</button>
                         <button onclick="openModal('returnModal')" class="bg-blue-500 text-white p-6 rounded-[35px] font-bold flex-1 text-xl shadow-lg hover:bg-blue-600 transition transform active:scale-95">Return Barang</button>
                     </div>
-                    <div class="card"><h3 class="font-bold mb-6 text-pink-500 uppercase tracking-widest text-xs border-b-2 border-pink-50 pb-2">Riwayat Peminjaman</h3><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-pink-50 text-pink-500 uppercase font-bold text-[10px]"><tr><th class="p-4">ID Pinjam</th><th>Barang</th><th>Peminjam</th><th>Status</th></tr></thead><tbody id="loanTable"></tbody></table></div></div>
+                    <div class="card"><h3 class="font-bold mb-6 text-pink-500 uppercase tracking-widest text-xs border-b-2 border-pink-50 pb-2">Peminjaman Aktif</h3><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-pink-50 text-pink-500 uppercase font-bold text-[10px]"><tr><th class="p-4">ID Pinjam</th><th>Barang</th><th>Peminjam</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="loanTable"></tbody></table></div></div>
+                    <div class="card border-t-4 border-blue-400"><h3 class="font-bold mb-6 text-blue-500 uppercase tracking-widest text-xs border-b-2 border-pink-50 pb-2">Riwayat Pengembalian</h3><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-blue-50 text-blue-500 uppercase font-bold text-[10px]"><tr><th class="p-4">ID Return</th><th>Barang</th><th>Kondisi</th><th>Tgl Kembali</th></tr></thead><tbody id="returnTable"></tbody></table></div></div>
                 </section>
 
                 <section id="users" class="view-section">
@@ -126,6 +135,19 @@
                 </section>
             </div>
         </main>
+    </div>
+
+    <div id="profileModal" class="modal">
+        <div class="bg-white p-8 rounded-[40px] w-full max-w-md border-4 border-pink-100 shadow-2xl">
+            <h3 class="text-2xl font-bold text-pink-500 mb-6 text-center">Update Profil Meow 🐾</h3>
+            <form id="profileForm" class="space-y-4">
+                <input type="text" id="prof_name" placeholder="Nama Baru" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500">
+                <input type="text" id="prof_phone" placeholder="No. Telepon" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500">
+                <input type="text" id="prof_dept" placeholder="Departemen" class="w-full p-4 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-500">
+                <button type="submit" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold">Simpan Perubahan</button>
+                <button type="button" onclick="closeModal('profileModal')" class="w-full text-gray-400 text-xs mt-2">Batal</button>
+            </form>
+        </div>
     </div>
 
     <div id="itemModal" class="modal">
@@ -149,6 +171,7 @@
     </div>
 
     <div id="detailModal" class="modal"><div class="bg-white p-8 rounded-[40px] w-full max-w-md border-4 border-pink-100 shadow-2xl text-center"><div id="detailContent"></div><button onclick="closeModal('detailModal')" class="mt-6 w-full bg-pink-500 text-white py-2 rounded-xl font-bold">Tutup</button></div></div>
+    <div id="userDetailModal" class="modal"><div class="bg-white p-8 rounded-[40px] w-full max-w-md border-4 border-pink-100 shadow-2xl text-center"><div id="userDetailContent"></div><button onclick="closeModal('userDetailModal')" class="mt-6 w-full bg-pink-500 text-white py-2 rounded-xl font-bold">Tutup</button></div></div>
     
     <div id="loanModal" class="modal">
         <div class="bg-white p-8 rounded-[40px] w-full max-w-lg border-4 border-emerald-100 shadow-2xl">
@@ -156,7 +179,12 @@
                 <h3 class="text-2xl font-bold text-emerald-500">Pinjam Aset</h3>
                 <button onclick="closeModal('loanModal')" class="text-emerald-300 hover:text-emerald-500"><i class="fas fa-times"></i></button>
             </div>
-            <form id="loanForm" class="space-y-4"><select id="l_item" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required></select><input type="number" id="l_qty" placeholder="Jumlah" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required><input type="date" id="l_date" class="w-full p-4 rounded-2xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required><button type="submit" class="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold shadow-lg">Pinjam</button></form>
+            <form id="loanForm" class="space-y-4">
+                <select id="l_item" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required></select>
+                <input type="number" id="l_qty" placeholder="Jumlah" class="w-full p-4 rounded-xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required>
+                <input type="date" id="l_date" class="w-full p-4 rounded-2xl border-2 border-emerald-50 outline-none focus:border-emerald-500" required>
+                <button type="submit" class="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold shadow-lg">Pinjam</button>
+            </form>
         </div>
     </div>
 
@@ -184,6 +212,23 @@
         let originalItems = []; 
         let isEditMode = false;
         let currentEditCode = '';
+        let currentUserRole = ''; 
+
+        function showAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginBtn = document.getElementById('loginTabBtn');
+            const registerBtn = document.getElementById('registerTabBtn');
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden'); registerForm.classList.add('hidden');
+                loginBtn.classList.add('bg-pink-500', 'text-white'); loginBtn.classList.remove('text-pink-500');
+                registerBtn.classList.add('text-pink-500'); registerBtn.classList.remove('bg-pink-500', 'text-white');
+            } else {
+                loginForm.classList.add('hidden'); registerForm.classList.remove('hidden');
+                registerBtn.classList.add('bg-pink-500', 'text-white'); registerBtn.classList.remove('text-pink-500');
+                loginBtn.classList.add('text-pink-500'); loginBtn.classList.remove('bg-pink-500', 'text-white');
+            }
+        }
 
         async function init() {
             if (!token) return;
@@ -191,15 +236,26 @@
                 const res = await fetch(`${API}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` }});
                 const data = await res.json();
                 if (data.success) {
+                    currentUserRole = data.data.role; 
                     document.getElementById('authPage').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
                     document.getElementById('profileName').innerText = data.data.name;
                     document.getElementById('profileRole').innerText = data.data.role;
-                    loadDashboard();
-                    fetchCategories(); 
-                    fetchItems(); 
-                } else logout();
-            } catch (err) { logout(); }
+                    
+                    if (currentUserRole !== 'admin') {
+                        document.getElementById('nav-users').style.display = 'none'; 
+                        document.getElementById('addAssetBtn').style.display = 'none'; 
+                    } else {
+                        document.getElementById('nav-users').style.display = 'block';
+                        document.getElementById('addAssetBtn').style.display = 'block';
+                    }
+
+                    document.getElementById('prof_name').value = data.data.name;
+                    document.getElementById('prof_phone').value = data.data.phone || '';
+                    document.getElementById('prof_dept').value = data.data.department || '';
+                    loadDashboard(); fetchCategories(); fetchItems(); 
+                } else { logout(); }
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('loginForm').onsubmit = async (e) => {
@@ -209,17 +265,44 @@
             if (data.success) { localStorage.setItem('token', data.data.token); token = data.data.token; init(); } else alert(data.message);
         };
 
+        document.getElementById('registerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API}/auth/register`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ name: reg_name.value, email: reg_email.value, password: reg_password.value, role: reg_role.value })
+            });
+            const data = await res.json();
+            if (data.success) { alert('Registrasi Berhasil! Silahkan Login'); showAuthTab('login'); } else alert(data.message);
+        };
+
+        document.getElementById('profileForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API}/auth/profile`, { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ name: prof_name.value, phone: prof_phone.value, department: prof_dept.value })
+            });
+            const data = await res.json();
+            alert(data.message); if(data.success) { closeModal('profileModal'); init(); }
+        };
+
         function logout() { localStorage.clear(); location.reload(); }
 
         async function loadDashboard() { loadStats(); fetchActivity(); }
 
         async function loadStats() {
-            const res = await fetch(`${API}/items/stats/summary`, { headers: { 'Authorization': `Bearer ${token}` }});
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('statTotal').innerText = data.data.total_items || 0;
-                renderChart(data.data.total_stock || 0, data.data.low_stock_count || 0);
-            }
+            try {
+                const res = await fetch(`${API}/items/stats/summary`, { headers: { 'Authorization': `Bearer ${token}` }});
+                const result = await res.json();
+                if (result.success) {
+                    const stats = result.data;
+                    // Sinkronkan dengan Backend dan konversi string ke number
+                    document.getElementById('statTotal').innerText = Number(stats.total_items) || 0;
+                    document.getElementById('statLoans').innerText = Number(stats.active_loans) || 0;
+                    renderChart(Number(stats.total_stock) || 0, Number(stats.low_stock_count) || 0);
+                }
+            } catch (err) { console.error(err); }
         }
 
         function renderChart(ready, low) {
@@ -227,7 +310,7 @@
             if(chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: ['Stok Aman', 'Hampir Habis'], datasets: [{ data: [ready, low], backgroundColor: ['#10b981', '#f59e0b'], borderRadius: 10 }]},
+                data: { labels: ['Aman ✅', 'Tipis ⚠️'], datasets: [{ data: [ready, low], backgroundColor: ['#10b981', '#fb6f92'], borderRadius: 10 }]},
                 options: { responsive: true, plugins: { legend: { display: false } } }
             });
         }
@@ -249,8 +332,7 @@
         async function fetchItems(page = 1) {
             const res = await fetch(`${API}/items?page=${page}&limit=5`, { headers: { 'Authorization': `Bearer ${token}` }});
             const data = await res.json();
-            const items = data.data.items || data.data; 
-            originalItems = items;
+            const items = data.data.items || data.data; originalItems = items;
             renderItems(items);
             if (data.data.pagination) renderPagination(data.data.pagination);
             else if (data.pagination) renderPagination(data.pagination);
@@ -264,10 +346,11 @@
                     <td class="text-gray-400">${i.brand || '-'}</td>
                     <td class="font-bold text-slate-600">${i.available}</td>
                     <td class="p-4 text-center">
-                        <div class="flex justify-center gap-2">
-                            <button onclick="openModalForEdit('${i.item_code}', '${i.name}', '${i.brand}', ${i.quantity}, ${i.category_id})" class="text-blue-400"><i class="fas fa-edit"></i></button>
+                        <div class="flex justify-center gap-2 ${currentUserRole !== 'admin' ? 'hidden' : ''}">
+                            <button onclick="openModalForEdit('${i.item_code}', '${i.name.replace(/'/g, "\\'")}', '${(i.brand || '').replace(/'/g, "\\'")}', ${i.quantity}, ${i.category_id})" class="text-blue-400"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteItem('${i.item_code}')" class="text-red-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
                         </div>
+                        <span class="${currentUserRole === 'admin' ? 'hidden' : ''} text-gray-300 italic">No Action</span>
                     </td>
                 </tr>`).join('');
         }
@@ -283,8 +366,7 @@
         async function handleInternalSearch(q) {
             if(!q) return fetchItems();
             const res = await fetch(`${API}/items/search?q=${q}`, { headers: { 'Authorization': `Bearer ${token}` }});
-            const data = await res.json();
-            renderItems(data.data);
+            const data = await res.json(); renderItems(data.data);
             document.getElementById('paginationControls').innerHTML = '';
         }
 
@@ -294,16 +376,17 @@
             document.getElementById('i_cat').innerHTML = data.data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
-        function filterByCategoryId(id) {
+        async function filterByCategoryId(id) {
             showSection('items');
-            const filtered = originalItems.filter(i => i.category_id == id);
-            renderItems(filtered);
+            const res = await fetch(`${API}/items/category/${id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            renderItems(data.data || []);
+            document.getElementById('paginationControls').innerHTML = '';
         }
 
         async function loadDummyData(query = '') {
             const url = query ? `https://dummyjson.com/products/search?q=${query}` : 'https://dummyjson.com/products?limit=10';
-            const res = await fetch(url);
-            const data = await res.json();
+            const res = await fetch(url); const data = await res.json();
             document.getElementById('dummyList').innerHTML = data.products.map(p => `
                 <div onclick="fillForm('${p.title.replace(/'/g, "\\'")}', '${p.brand ? p.brand.replace(/'/g, "\\'") : '-'}', ${p.stock})" class="p-2 bg-slate-50 rounded-xl border-2 border-white hover:border-pink-300 cursor-pointer mb-1 transition-all">
                     <p class="font-bold text-[9px] line-clamp-1">${p.title}</p>
@@ -311,18 +394,14 @@
         }
 
         function fillForm(name, brand, stock) {
-            document.getElementById('i_name').value = name;
-            document.getElementById('i_brand').value = brand;
-            document.getElementById('i_qty').value = stock;
+            document.getElementById('i_name').value = name; document.getElementById('i_brand').value = brand; document.getElementById('i_qty').value = stock;
         }
 
         function openModalForAdd() {
-            isEditMode = false;
-            document.getElementById('modalTitle').innerText = 'Input Aset Baru';
-            document.getElementById('i_code').disabled = false;
-            document.getElementById('itemForm').reset();
-            loadDummyData();
-            openModal('itemModal');
+            isEditMode = false; document.getElementById('modalTitle').innerText = 'Input Aset Baru';
+            document.getElementById('i_code').disabled = false; document.getElementById('itemForm').reset();
+            document.getElementById('dummySection').style.display = 'block';
+            loadDummyData(); openModal('itemModal');
         }
 
         function openModalForEdit(code, name, brand, qty, cat) {
@@ -330,8 +409,10 @@
             document.getElementById('modalTitle').innerText = 'Edit Data Aset';
             document.getElementById('dummySection').style.display = 'none';
             document.getElementById('i_code').value = code; document.getElementById('i_code').disabled = true;
-            document.getElementById('i_name').value = name; document.getElementById('i_brand').value = brand;
-            document.getElementById('i_qty').value = qty; document.getElementById('i_cat').value = cat;
+            document.getElementById('i_name').value = name; 
+            document.getElementById('i_brand').value = brand === 'null' ? '' : brand;
+            document.getElementById('i_qty').value = qty; 
+            document.getElementById('i_cat').value = cat;
             openModal('itemModal');
         }
 
@@ -339,22 +420,48 @@
             e.preventDefault();
             const url = isEditMode ? `${API}/items/${currentEditCode}` : `${API}/items`;
             const method = isEditMode ? 'PUT' : 'POST';
-            const res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ item_code: i_code.value, name: i_name.value, brand: i_brand.value, quantity: i_qty.value, category_id: i_cat.value })});
+            const stokInput = document.getElementById('i_qty').value;
+            const res = await fetch(url, { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ 
+                    item_code: i_code.value, 
+                    name: i_name.value, 
+                    brand: i_brand.value, 
+                    quantity: stokInput, 
+                    available: stokInput, // TAMBAHKAN INI: Agar stok tersedia tidak 0
+                    category_id: i_cat.value 
+                })
+            });
             const data = await res.json();
-            alert(data.message); if(data.success) { closeModal('itemModal'); fetchItems(); loadDashboard(); }
+            alert(data.message); 
+            if(data.success) { closeModal('itemModal'); fetchItems(); loadDashboard(); }
         };
-
         async function openLoanModal() {
-            const res = await fetch(`${API}/items`, { headers: { 'Authorization': `Bearer ${token}` }});
-            const data = await res.json();
-            const items = data.data.items || data.data; 
-            document.getElementById('l_item').innerHTML = items.map(i => `<option value="${i.Id || i.id}">${i.name} (Stok: ${i.available})</option>`).join('');
-            openModal('loanModal');
+            try {
+                const res = await fetch(`${API}/items`, { headers: { 'Authorization': `Bearer ${token}` }});
+                const data = await res.json();
+                const items = data.data.items || data.data; 
+                document.getElementById('l_item').innerHTML = items.map(i => {
+                    const actualID = i.Id || i.id; // Sesuai Backend i.Id (I besar)
+                    return `<option value="${actualID}">${i.name} (Tersedia: ${i.available})</option>`;
+                }).join('');
+                openModal('loanModal');
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('loanForm').onsubmit = async (e) => {
             e.preventDefault();
-            const res = await fetch(`${API}/loans`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ item_id: l_item.value, quantity: l_qty.value, return_date: l_date.value, purpose: 'Pinjam Sistem' })});
+            const res = await fetch(`${API}/loans`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ 
+                    item_id: document.getElementById('l_item').value, // Mengambil i.Id besar dari value
+                    quantity: l_qty.value, 
+                    return_date: l_date.value, 
+                    purpose: 'Pinjam Sistem' 
+                })
+            });
             const data = await res.json();
             alert(data.message); if(data.success) { closeModal('loanModal'); fetchLoans(); loadDashboard(); fetchItems(); }
         };
@@ -363,7 +470,7 @@
             e.preventDefault();
             const res = await fetch(`${API}/returns`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ loan_id: r_loan_id.value, condition: r_cond.value })});
             const data = await res.json();
-            alert(data.message); if(data.success) { closeModal('returnModal'); fetchLoans(); loadDashboard(); fetchItems(); }
+            alert(data.message); if(data.success) { closeModal('returnModal'); fetchLoans(); fetchReturns(); loadDashboard(); fetchItems(); }
         };
 
         async function fetchLoans() {
@@ -377,14 +484,60 @@
                         <td class="font-bold text-slate-700">${l.item_name}</td>
                         <td class="text-gray-500 uppercase font-bold text-[10px]">${l.user_name}</td>
                         <td><span class="px-3 py-1 rounded-full ${l.status === 'borrowed' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'} text-[8px] font-bold uppercase shadow-sm">${l.status}</span></td>
+                        <td>
+                            ${l.status === 'borrowed' ? `<button onclick="openReturnModalWithID(${l.Id || l.id})" class="text-blue-500 font-bold">Return</button>` : `<i class="fas fa-check-circle text-emerald-400"></i>`}
+                        </td>
                     </tr>`).join('');
-            } else { tableBody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-gray-300 italic">Belum ada riwayat peminjaman meow... 🐱</td></tr>`; }
+            } else { tableBody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-300 italic">Belum ada peminjaman aktif... 🐱</td></tr>`; }
+        }
+
+        async function fetchReturns() {
+            const res = await fetch(`${API}/returns`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const tableBody = document.getElementById('returnTable');
+            if (data.data && data.data.length > 0) {
+                tableBody.innerHTML = data.data.map(r => `
+                    <tr class="border-b border-blue-50 text-[11px] hover:bg-blue-50 transition">
+                        <td class="p-4 font-bold text-gray-400 italic">#RET-${r.id}</td>
+                        <td class="font-bold text-slate-700">${r.item_name || 'Barang'}</td>
+                        <td><span class="px-2 py-1 rounded-md ${r.condition === 'good' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} font-bold uppercase text-[9px]">${r.condition}</span></td>
+                        <td class="text-gray-500">${new Date(r.createdAt).toLocaleDateString('id-ID')}</td>
+                    </tr>`).join('');
+            } else { tableBody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-gray-300 italic">Belum ada riwayat pengembalian... 🐈</td></tr>`; }
+        }
+
+        function openReturnModalWithID(id) {
+            document.getElementById('r_loan_id').value = id; openModal('returnModal');
         }
 
         async function fetchUsers() {
             const res = await fetch(`${API}/users`, { headers: { 'Authorization': `Bearer ${token}` }});
             const data = await res.json();
-            document.getElementById('userTable').innerHTML = data.data.map(u => `<tr class="border-b border-pink-50 text-[11px]"><td class="p-4 font-bold text-gray-400 italic">#U-${u.id}</td><td class="font-bold text-slate-700">${u.name}</td><td>${u.email}</td><td><span class="px-3 py-1 bg-pink-50 text-pink-500 rounded-lg text-[9px] font-bold uppercase shadow-sm">${u.role}</span></td><td class="text-center"><button onclick="updateUserRole(${u.id}, '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-blue-400 underline font-bold">Switch</button></td></tr>`).join('');
+            document.getElementById('userTable').innerHTML = data.data.map(u => `
+                <tr class="border-b border-pink-50 text-[11px]">
+                    <td class="p-4 font-bold text-gray-400 italic">#U-${u.id}</td>
+                    <td class="font-bold text-slate-700 cursor-pointer underline" onclick="showUserDetail(${u.id})">${u.name}</td>
+                    <td>${u.email}</td>
+                    <td><span class="px-3 py-1 bg-pink-50 text-pink-500 rounded-lg text-[9px] font-bold uppercase shadow-sm">${u.role}</span></td>
+                    <td class="text-center flex gap-2 justify-center">
+                        <button onclick="updateUserRole(${u.id}, '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-blue-400 underline font-bold">Switch</button>
+                        <button onclick="deleteUser(${u.id})" class="text-red-400"><i class="fas fa-user-minus"></i></button>
+                    </td>
+                </tr>`).join('');
+        }
+
+        async function showUserDetail(id) {
+            const res = await fetch(`${API}/users/${id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json();
+            const u = data.data;
+            document.getElementById('userDetailContent').innerHTML = `<h3 class="text-xl font-bold text-pink-500 mb-4">Detail User</h3><div class="text-left space-y-2 text-xs"><p><b>Nama:</b> ${u.name}</p><p><b>Email:</b> ${u.email}</p><p><b>Role:</b> ${u.role}</p><p><b>Telepon:</b> ${u.phone || '-'}</p><p><b>Departemen:</b> ${u.department || '-'}</p></div>`;
+            openModal('userDetailModal');
+        }
+
+        async function deleteUser(id) {
+            if(!confirm("Hapus user ini selamanya?")) return;
+            const res = await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await res.json(); alert(data.message); if(data.success) fetchUsers();
         }
 
         async function updateUserRole(id, newRole) {
@@ -396,7 +549,7 @@
             if(!q) return document.getElementById('publicResult').innerHTML = '';
             const res = await fetch(`${API}/public/search?q=${q}`);
             const data = await res.json();
-            document.getElementById('publicResult').innerHTML = data.data.map(itm => `<div class="p-3 bg-slate-50 rounded-xl flex justify-between mb-1"><span>${itm.name}</span><span class="font-bold text-pink-500">${itm.available} Ready</span></div>`).join('');
+            document.getElementById('publicResult').innerHTML = data.data.map(itm => `<div class="p-3 bg-white rounded-xl flex justify-between mb-1 shadow-sm border"><span>${itm.name}</span><span class="font-bold text-pink-500">${itm.available} Ready</span></div>`).join('');
         }
 
         async function generateTestData() {
@@ -415,7 +568,7 @@
             document.getElementById('sectionTitle').innerText = id.toUpperCase();
             if (id === 'dashboard') loadDashboard();
             if (id === 'items') fetchItems();
-            if (id === 'loans') fetchLoans();
+            if (id === 'loans') { fetchLoans(); fetchReturns(); }
             if (id === 'users') fetchUsers();
         }
 

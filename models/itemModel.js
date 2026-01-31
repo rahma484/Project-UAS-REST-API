@@ -47,7 +47,7 @@ const createItem = async (item) => {
             model || null, 
             serial_number || null, 
             quantity || 0, 
-            available || 0, 
+            available !== undefined ? available : (quantity || 0),
             minimum_stock || 0, 
             unit || 'pcs', 
             purchase_price || 0, 
@@ -69,6 +69,9 @@ const createItem = async (item) => {
 
 const updateItem = async (kode, data) => {
     try {
+        const currentItem = await getItemByCode(kode);
+        if (!currentItem) return 0;
+
         const { 
             name, category_id, brand, model, serial_number,
             quantity, available, minimum_stock, unit, purchase_price,
@@ -85,12 +88,27 @@ const updateItem = async (kode, data) => {
                 description = ?, image_url = ?, updated_at = NOW()
             WHERE item_code = ?
         `;
-                
+        
         const [result] = await db.query(query, [
-            name, category_id, brand, model, serial_number,
-            quantity, available, minimum_stock, unit, purchase_price,
-            current_value, location, supplier, purchase_date, warranty_until,
-            condition, description, image_url, kode
+            name || currentItem.name,
+            category_id || currentItem.category_id,
+            brand || currentItem.brand,
+            model || currentItem.model,
+            serial_number || currentItem.serial_number,
+            quantity !== undefined ? quantity : currentItem.quantity,
+            available !== undefined ? available : currentItem.available,
+            minimum_stock !== undefined ? minimum_stock : currentItem.minimum_stock,
+            unit || currentItem.unit,
+            purchase_price || currentItem.purchase_price,
+            current_value || currentItem.current_value,
+            location || currentItem.location,
+            supplier || currentItem.supplier,
+            purchase_date || currentItem.purchase_date,
+            warranty_until || currentItem.warranty_until,
+            condition || currentItem.condition,
+            description || currentItem.description,
+            image_url || currentItem.image_url,
+            kode
         ]);
         return result.affectedRows;
     } catch (error) {
@@ -126,7 +144,6 @@ const getItemsWithPagination = async (page = 1, limit = 10) => {
     try {
         const offset = (parseInt(page) - 1) * parseInt(limit);
         
-        // Perhatikan 'Id' (I besar) sesuai XAMPP kamu
         const [rows] = await db.query(
             "SELECT * FROM items ORDER BY Id DESC LIMIT ? OFFSET ?",
             [parseInt(limit), offset]
@@ -158,23 +175,32 @@ const getAllCategories = async () => {
     }
 }
 
-// Menghitung statistik untuk Dashboard
 const getInventoryStats = async () => {
+    const [rows] = await db.query(`
+        SELECT 
+            (SELECT COUNT(*) FROM items) as total_items,
+            (SELECT SUM(available) FROM items) as total_stock,
+            (SELECT COUNT(*) FROM items WHERE available <= minimum_stock) as low_stock_count,
+            /* PERBAIKAN DI BAWAH INI: Ganti 'dipinjam' jadi 'borrowed' */
+            (SELECT COUNT(*) FROM loans WHERE status = 'borrowed') as active_loans,
+            /* Pastikan juga status kembali sesuai, misal 'returned' */
+            (SELECT COUNT(*) FROM loans WHERE status = 'returned') as total_returned
+    `);
+    return rows[0];
+};
+
+const getItemsByCategory = async (categoryId) => {
     try {
-        const [rows] = await db.query(`
-            SELECT 
-                COUNT(*) as total_items,
-                SUM(quantity) as total_stock,
-                SUM(CASE WHEN available < minimum_stock THEN 1 ELSE 0 END) as low_stock_count
-            FROM items
-        `);
-        return rows[0];
+        const [rows] = await db.query(
+            "SELECT * FROM items WHERE category_id = ? ORDER BY Id DESC",
+            [categoryId]
+        );
+        return rows;
     } catch (error) {
-        throw new Error('Gagal mengambil statistik: ' + error.message);
+        throw new Error('Gagal mengambil items berdasarkan kategori: ' + error.message);
     }
 };
 
-// Fungsi getAllCategories sudah ada di file kamu sebelumnya
 
 module.exports = {
     getAllItems,
@@ -185,5 +211,6 @@ module.exports = {
     searchItems,
     getItemsWithPagination,
     getAllCategories,
-    getInventoryStats
+    getInventoryStats,
+    getItemsByCategory
 };

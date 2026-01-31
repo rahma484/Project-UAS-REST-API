@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken')
-// bcrypt tidak lagi digunakan untuk login, tapi tetap di-require agar tidak error di bagian lain jika ada
 const bcrypt = require('bcryptjs') 
 const userModel = require('../models/userModel')
 
@@ -15,8 +14,7 @@ const register = async (req, res) => {
         }
      
         const userRole = role || 'staff'
-        
-        // Pastikan di userModel.js, fungsi createUser juga sudah tidak memakai bcrypt.hash
+
         const user = await userModel.createUser({
             name,
             email,
@@ -74,8 +72,6 @@ const login = async (req, res) => {
             })
         }
        
-        // PERBAIKAN: Menggunakan perbandingan string langsung (Plain Text)
-        // Tanpa await bcrypt.compare
         const isValidPassword = (password === user.password)
         
         if (!isValidPassword) {
@@ -140,4 +136,30 @@ const getProfile = async (req, res) => {
     }
 }
 
-module.exports = { register, login, getProfile }
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+        const { name, phone, department } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ success: false, message: "Nama tidak boleh kosong" });
+        }
+
+        const affectedRows = await userModel.updateUser(userId, { name, phone, department });
+
+        if (affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
+        res.json({
+            success: true,
+            message: "Profil INV-RA berhasil diperbarui! ✨",
+            data: { name, phone, department }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error: " + error.message });
+    }
+};
+
+module.exports = { register, login, getProfile, updateProfile }
+

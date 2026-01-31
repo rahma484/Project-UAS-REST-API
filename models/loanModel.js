@@ -1,7 +1,6 @@
 const db = require('../config/db');
 
 const loanModel = {
-    // Fungsi untuk membuat data peminjaman baru
     create: async (loanData) => {
         const { item_id, user_id, quantity, return_date, purpose } = loanData;
         const query = `
@@ -12,7 +11,6 @@ const loanModel = {
         return result.insertId;
     },
 
-    // Fungsi untuk melihat semua riwayat pinjam (buat pamer ke dosen)
     getAll: async () => {
         const query = `
             SELECT loans.*, items.name as item_name, users.name as user_name 
@@ -24,8 +22,6 @@ const loanModel = {
         const [rows] = await db.query(query);
         return rows;
     },
-
-    // Fungsi untuk mencari data pinjam berdasarkan ID (penting buat fitur Return)
     getById: async (id) => {
         const [rows] = await db.query('SELECT * FROM loans WHERE id = ?', [id]);
         return rows[0];

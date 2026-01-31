@@ -34,5 +34,4 @@ const adminOnly = (req, res, next) => {
     next()
 }
 
-// Pastikan ekspor ini benar
 module.exports = { auth, adminOnly }

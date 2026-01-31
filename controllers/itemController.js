@@ -2,20 +2,14 @@ const itemModel = require('../models/itemModel')
 
 const getAllItems = async (req, res) => {
     try {
-        // Ambil parameter page dan limit dari URL (jika ada)
         const { page, limit } = req.query;
-
-        // LOGIKA CERDAS: 
-        // Jika ada parameter page/limit, gunakan pagination (untuk Dashboard)
-        // Jika TIDAK ADA, ambil semua data (untuk Lihat Semua Aset)
         if (page && limit) {
             const result = await itemModel.getItemsWithPagination(parseInt(page), parseInt(limit));
             return res.json({
                 success: true,
-                data: result // result biasanya berisi { items, pagination }
+                data: result
             });
         } else {
-            // Mengambil semua data tanpa batas (untuk fitur Lihat Semua)
             const items = await itemModel.getAllItems();
             return res.json({
                 success: true,
@@ -64,7 +58,6 @@ const createItem = async (req, res) => {
             })
         }
 
-        // Pastikan created_by diambil dari token user yang login
         const newItemId = await itemModel.createItem({
             ...req.body,
             created_by: req.user.id 
@@ -87,10 +80,40 @@ const updateItem = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Kode item harus diisi' })
         }
 
-        const affectedRows = await itemModel.updateItem(kode, req.body)
+        const oldData = await itemModel.getItemByCode(kode);
+        if (!oldData) {
+            return res.status(404).json({ success: false, message: 'Item tidak ditemukan' });
+        }
+        
+        const newQty = req.body.quantity !== "" && req.body.quantity !== undefined ? parseInt(req.body.quantity) : oldData.quantity;
+        
+        const newAvailable = req.body.available !== "" && req.body.available !== undefined ? parseInt(req.body.available) : newQty;
+
+        const mergedData = {
+            name: req.body.name || oldData.name,
+            category_id: req.body.category_id || oldData.category_id,
+            brand: req.body.brand || oldData.brand,
+            model: req.body.model || oldData.model,
+            serial_number: req.body.serial_number || oldData.serial_number,
+            quantity: req.body.quantity !== undefined ? req.body.quantity : oldData.quantity,
+            available: req.body.available !== undefined ? req.body.available : oldData.available,
+            minimum_stock: req.body.minimum_stock !== undefined ? req.body.minimum_stock : oldData.minimum_stock,
+            unit: req.body.unit || oldData.unit,
+            purchase_price: req.body.purchase_price || oldData.purchase_price,
+            current_value: req.body.current_value || oldData.current_value,
+            location: req.body.location || oldData.location,
+            supplier: req.body.supplier || oldData.supplier,
+            purchase_date: req.body.purchase_date || oldData.purchase_date,
+            warranty_until: req.body.warranty_until || oldData.warranty_until,
+            condition: req.body.condition || oldData.condition,
+            description: req.body.description || oldData.description,
+            image_url: req.body.image_url || oldData.image_url
+        };
+
+        const affectedRows = await itemModel.updateItem(kode, mergedData)
         
         if (affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Item tidak ditemukan' })
+            return res.status(404).json({ success: false, message: 'Gagal memperbarui: Item tidak ditemukan' })
         }
         
         res.json({ success: true, message: 'Item berhasil diperbarui' })
@@ -121,7 +144,6 @@ const searchItems = async (req, res) => {
         if (!q) {
             return res.status(400).json({ success: false, message: 'Query pencarian harus diisi' })
         }
-        // Mencari ke database (biasanya mengambil semua yang cocok tanpa limit paging)
         const items = await itemModel.searchItems(q)
         res.json({ success: true, count: items.length, data: items })
     } catch (error) {
@@ -131,20 +153,20 @@ const searchItems = async (req, res) => {
 
 const getItemsByCategory = async (req, res) => {
     try {
-        const { kategori_id } = req.params
-        const items = await itemModel.getItemsByCategory(kategori_id)
-        res.json({ success: true, count: items.length, data: items })
+        const { id } = req.params;
+        const items = await itemModel.getItemsByCategory(id);
+        res.json({ success: true, count: items.length, data: items });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Gagal mengambil items' })
+        res.status(500).json({ success: false, message: 'Gagal mengambil items' });
     }
-}
+};
 
 const getInventoryStats = async (req, res) => {
     try {
-        const stats = await itemModel.getInventoryStats(); // Kita buat fungsinya di model nanti
+        const stats = await itemModel.getInventoryStats(); 
         res.json({
             success: true,
-            data: stats
+            data: stats 
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
